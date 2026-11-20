@@ -20,7 +20,7 @@ local function makePart(name, size, color, position)
 	part.Material = Enum.Material.SmoothPlastic
 	part.Anchored = true
 	part.CanCollide = false
-	part.CanQuery = false
+	part.CanQuery = true
 	part.Position = position
 	return part
 end
@@ -200,7 +200,7 @@ function CharacterFactory.buildCharacterModel(charId, mutationId, rate, price)
 
 	local click = Instance.new("ClickDetector")
 	click.Name = "Click"
-	click.MaxActivationDistance = 32
+	click.MaxActivationDistance = 64
 	click.Parent = model
 
 	return model
