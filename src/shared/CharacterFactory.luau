@@ -93,7 +93,9 @@ local function buildLabel(model, head, char, mutationId, rate, price)
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "Label"
 	gui.Adornee = head
-	gui.Size = UDim2.fromOffset(220, 92)
+	-- 8x2.5 studs (was 12x4): small enough that neighbouring characters'
+	-- labels no longer pile up on top of each other.
+	gui.Size = UDim2.fromOffset(147, 58)
 	gui.StudsOffset = Vector3.new(0, 2.6, 0)
 	gui.AlwaysOnTop = true
 	gui.LightInfluence = 0
@@ -101,7 +103,7 @@ local function buildLabel(model, head, char, mutationId, rate, price)
 	local function label(name, text, y, size, color, bold)
 		local t = Instance.new("TextLabel")
 		t.Name = name
-		t.Size = UDim2.new(1, 0, 0, 26)
+		t.Size = UDim2.new(1, 0, 0, 16)
 		t.Position = UDim2.new(0, 0, 0, y)
 		t.BackgroundTransparency = 0.35
 		t.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
@@ -114,20 +116,20 @@ local function buildLabel(model, head, char, mutationId, rate, price)
 		return t
 	end
 
-	label("NameLabel", Characters.displayName(char.id, mutationId), 0, 22, Color3.fromRGB(255, 255, 255), true)
+	label("NameLabel", Characters.displayName(char.id, mutationId), 0, 14, Color3.fromRGB(255, 255, 255), true)
 	local rarityText = char.rarity:upper()
 	local mutationLabel = Rarities.mutationLabel(mutationId)
 	if mutationLabel ~= "" then
 		rarityText = rarityText .. "  " .. mutationLabel
 	end
-	label("RarityLabel", rarityText, 26, 18, Rarities.colorOfRarity(char.rarity), true)
-	label("RateLabel", "$" .. CharacterFactory.formatMoney(rate) .. "/s", 50, 22, Color3.fromRGB(90, 255, 130), true)
-	local priceLabel = label("PriceLabel", "", 74, 18, Color3.fromRGB(255, 220, 90), true)
+	label("RarityLabel", rarityText, 16, 11, Rarities.colorOfRarity(char.rarity), true)
+	label("RateLabel", "$" .. CharacterFactory.formatMoney(rate) .. "/s", 32, 14, Color3.fromRGB(90, 255, 130), true)
+	local priceLabel = label("PriceLabel", "", 48, 11, Color3.fromRGB(255, 220, 90), true)
 	priceLabel.Visible = false
 	if price then
 		priceLabel.Text = "BELI $" .. CharacterFactory.formatMoney(price)
 		priceLabel.Visible = true
-		gui.Size = UDim2.fromOffset(220, 104)
+		gui.Size = UDim2.fromOffset(147, 65)
 	end
 	gui.Parent = model
 	return gui
@@ -197,6 +199,21 @@ function CharacterFactory.buildCharacterModel(charId, mutationId, rate, price)
 	standValue.Name = "StandHeight"
 	standValue.Value = 1.2 * scale
 	standValue.Parent = model
+
+	-- Large invisible hitbox: the player clicks the big name label, not the
+	-- small body, and the mouse raycast passes straight through the GUI.
+	-- This 8x6x8 part covers the whole label area so the ClickDetector
+	-- fires anywhere the label is clicked. PivotTo moves the whole model,
+	-- so it follows the character down the lane.
+	local hitbox = Instance.new("Part")
+	hitbox.Name = "Hitbox"
+	hitbox.Size = Vector3.new(8, 6, 8)
+	hitbox.Position = Vector3.new(0, 3, 0)
+	hitbox.Transparency = 1
+	hitbox.CanQuery = true
+	hitbox.CanCollide = false
+	hitbox.Anchored = true
+	hitbox.Parent = model
 
 	local click = Instance.new("ClickDetector")
 	click.Name = "Click"
