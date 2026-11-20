@@ -141,14 +141,9 @@ function CharacterSpawner.placeCarriedCharacter(player)
 			priceLabel.Visible = false
 		end
 	end
-	-- The stall character can be stolen: wire its ClickDetector.
+	-- The stall character keeps its ClickDetector, but nothing is wired to
+	-- it: clicking a placed character does nothing.
 	local char = Characters.findById(carried.charId)
-	local click = model:FindFirstChild("Click")
-	if click then
-		click.MouseClick:Connect(function(otherPlayer)
-			CharacterSpawner.onStallCharacterClicked(otherPlayer, state, model)
-		end)
-	end
 	model.Parent = Workspace
 	table.insert(state.owned, {
 		charId = carried.charId,
@@ -158,16 +153,8 @@ function CharacterSpawner.placeCarriedCharacter(player)
 		slot = slot,
 		model = model,
 	})
-	state.collection[carried.charId] = true
 	state.carrying = nil
 	return true, slot
-end
-
--- A stall character was clicked. The owner clicking it does nothing; another
--- player clicking it tries to steal it (see StealAndLock).
-function CharacterSpawner.onStallCharacterClicked(player, ownerState, model)
-	local StealAndLock = require(script.Parent.StealAndLock)
-	StealAndLock.tryStealCharacter(player, ownerState, model)
 end
 
 -- Walk every lane character one step south; despawn the ones that leave.
