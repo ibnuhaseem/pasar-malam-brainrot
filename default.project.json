@@ -32,9 +32,9 @@
         "$className": "Part",
         "$properties": {
           "Size": [
-            512,
+            260,
             20,
-            512
+            260
           ],
           "Position": [
             0,
