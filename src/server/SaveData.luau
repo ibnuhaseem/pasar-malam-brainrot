@@ -1,7 +1,7 @@
--- SaveData: persists a player's cash, rebirth level, collection and mission
--- progress in a DataStore. Every call is wrapped in pcall: in Studio without
--- API access (or when Roblox is unreachable) the game simply keeps playing
--- without saving. Placed characters are session-only and are not saved.
+-- SaveData: persists a player's cash in a DataStore. Every call is wrapped
+-- in pcall: in Studio without API access (or when Roblox is unreachable)
+-- the game simply keeps playing without saving. Placed characters are
+-- session-only and are not saved.
 
 local DataStoreService = game:GetService("DataStoreService")
 local Players = game:GetService("Players")
@@ -34,27 +34,6 @@ function SaveData.loadPlayerData(player, state)
 	if type(data.cash) == "number" then
 		state.cash = data.cash
 	end
-	if type(data.rebirthLevel) == "number" then
-		state.rebirthLevel = math.clamp(data.rebirthLevel, 0, 3)
-	end
-	if type(data.collection) == "table" then
-		for _, charId in ipairs(data.collection) do
-			state.collection[charId] = true
-		end
-	end
-	if type(data.missions) == "table" then
-		for missionId, record in pairs(data.missions) do
-			if type(record) == "table" then
-				state.missions[missionId] = {
-					progress = record.progress or 0,
-					claimed = record.claimed == true,
-				}
-			end
-		end
-	end
-	if type(data.locksUsed) == "number" then
-		state.locksUsed = data.locksUsed
-	end
 	return true
 end
 
@@ -63,16 +42,8 @@ function SaveData.savePlayerData(player, state)
 	if not store or not state then
 		return false
 	end
-	local collection = {}
-	for charId, _ in pairs(state.collection) do
-		table.insert(collection, charId)
-	end
 	local data = {
 		cash = math.floor(state.cash),
-		rebirthLevel = state.rebirthLevel,
-		collection = collection,
-		missions = state.missions,
-		locksUsed = state.locksUsed,
 	}
 	local success, _err = pcall(function()
 		store:SetAsync("player_" .. player.UserId, data)
