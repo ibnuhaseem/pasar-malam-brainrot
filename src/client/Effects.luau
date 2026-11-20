@@ -1,7 +1,6 @@
 -- Effects: client-side feedback that makes actions feel real.
--- A green flash when cash is collected, a gold flash when a character is
--- bought, and a red flash when a raid confiscates something. All of it is
--- UI-only: the world effects (lamp color, particles) run on the server.
+-- A green flash when cash is collected and a gold flash when a character is
+-- bought. All of it is UI-only.
 
 local TweenService = game:GetService("TweenService")
 
