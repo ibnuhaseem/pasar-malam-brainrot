@@ -1,4 +1,6 @@
--- init.server: the server bootstrap for Pasar Malam Brainrot.
+-- Main.server: the server bootstrap for Pasar Malam Brainrot (simple version).
+-- Pick (buy off the lane), bring (carry), drop (place in your stall), and
+-- the money system (income per second + collect). Nothing else.
 -- Creates the remotes, assigns stalls, runs the income tick, and wires every
 -- RemoteEvent to the module that owns it. State lives in GameState; this file
 -- only connects things.
@@ -10,9 +12,7 @@ local Workspace = game:GetService("Workspace")
 local CharacterSpawner = require(script.Parent.CharacterSpawner)
 local Economy = require(script.Parent.Economy)
 local GameState = require(script.Parent.GameState)
-local RaidEvent = require(script.Parent.RaidEvent)
 local SaveData = require(script.Parent.SaveData)
-local StealAndLock = require(script.Parent.StealAndLock)
 local WorldConfig = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("WorldConfig"))
 
 -- The remotes, created once at startup.
@@ -30,9 +30,6 @@ end
 local Remotes = {
 	PlaceCharacter = makeRemote("PlaceCharacter"),
 	CollectCash = makeRemote("CollectCash"),
-	LockStall = makeRemote("LockStall"),
-	Rebirth = makeRemote("Rebirth"),
-	ClaimMission = makeRemote("ClaimMission"),
 	StateUpdate = makeRemote("StateUpdate"),
 	Notify = makeRemote("Notify"),
 }
@@ -61,22 +58,13 @@ local function buildStateSnapshot(state)
 		cash = math.floor(state.cash),
 		pending = math.floor(state.pending),
 		income = GameState.incomePerSecond(state),
-		rebirthLevel = state.rebirthLevel,
-		rebirthName = GameState.rebirthName(state),
-		multiplier = GameState.rebirthMultiplier(state),
-		nextRebirthCost = Economy.nextRebirthCost(state),
 		carrying = carrying,
 		owned = owned,
 		ownedCount = #state.owned,
 		ownedSlots = GameState.MAX_STALL_CHARACTERS,
 		stallIndex = state.stallIndex,
-		lockSecondsLeft = StealAndLock.lockSecondsLeft(state.stallIndex),
-		raidPhase = GameState.raid.phase,
-		raidSecondsLeft = math.max(0, math.ceil(GameState.raid.secondsLeft)),
 		nextSpawnIn = math.max(0, math.ceil(CharacterSpawner.nextSpawnIn)),
 		nextSpawn = CharacterSpawner.nextPreview,
-		missions = Economy.missionListForClient(state),
-		collection = Economy.collectionForClient(state),
 	}
 end
 
@@ -173,9 +161,6 @@ local function onPlayerRemoving(player)
 	local record = GameState.stalls[state.stallIndex]
 	if record and record.owner == player then
 		record.owner = nil
-		record.lockedUntil = 0
-		record.lockCooldownUntil = 0
-		record.stealCooldownUntil = 0
 		updateStallSign(state.stallIndex)
 	end
 	GameState.players[player] = nil
@@ -197,7 +182,6 @@ local function wirePlacePads()
 					end
 					local ok, result = CharacterSpawner.placeCarriedCharacter(player)
 					if ok then
-						Economy.refreshCountMissions(state)
 						notifyPlayer(player, "Karakter ditaruh di kios! Slot " .. result .. ".", Color3.fromRGB(90, 255, 130))
 					else
 						notifyPlayer(player, result, Color3.fromRGB(255, 80, 80))
@@ -222,7 +206,6 @@ Remotes.PlaceCharacter.OnServerEvent:Connect(function(player)
 	if root and stall and WorldConfig.isInsideStall(stall, root.Position) then
 		local ok, result = CharacterSpawner.placeCarriedCharacter(player)
 		if ok then
-			Economy.refreshCountMissions(state)
 			notifyPlayer(player, "Karakter ditaruh di kios! Slot " .. result .. ".", Color3.fromRGB(90, 255, 130))
 		else
 			notifyPlayer(player, result, Color3.fromRGB(255, 80, 80))
@@ -245,42 +228,11 @@ Remotes.CollectCash.OnServerEvent:Connect(function(player)
 	broadcastState(player)
 end)
 
-Remotes.LockStall.OnServerEvent:Connect(function(player)
-	local ok, message = StealAndLock.lockPlayerStall(player)
-	notifyPlayer(player, message, ok and Color3.fromRGB(90, 255, 130) or Color3.fromRGB(255, 80, 80))
-	broadcastState(player)
-end)
-
-Remotes.Rebirth.OnServerEvent:Connect(function(player)
-	local state = GameState.players[player]
-	if not state then
-		return
-	end
-	local ok, message = Economy.applyRebirth(state)
-	notifyPlayer(player, message, ok and Color3.fromRGB(90, 255, 130) or Color3.fromRGB(255, 80, 80))
-	broadcastState(player)
-end)
-
-Remotes.ClaimMission.OnServerEvent:Connect(function(player, missionId)
-	local state = GameState.players[player]
-	if not state then
-		return
-	end
-	local ok, result = Economy.claimMission(state, missionId)
-	if ok then
-		notifyPlayer(player, "Pesanan selesai! Hadiah $" .. result .. ".", Color3.fromRGB(90, 255, 130))
-	else
-		notifyPlayer(player, result, Color3.fromRGB(255, 80, 80))
-	end
-	broadcastState(player)
-end)
-
--- The income tick: every second, pending income grows, the raid clock moves,
--- and every player gets a fresh snapshot.
+-- The income tick: every second, pending income grows and every player gets
+-- a fresh snapshot.
 task.spawn(function()
 	while true do
 		task.wait(1)
-		RaidEvent.tickRaidClock(1)
 		for player, state in pairs(GameState.players) do
 			state.pending += GameState.incomePerSecond(state)
 			broadcastState(player)
@@ -296,7 +248,6 @@ end
 
 wirePlacePads()
 CharacterSpawner.init()
-RaidEvent.init()
 SaveData.init(GameState.players)
 
 print("Pasar Malam Brainrot: server siap.")
