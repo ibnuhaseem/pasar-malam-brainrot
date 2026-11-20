@@ -4442,21 +4442,21 @@
     "Lighting": {
       "$properties": {
         "Ambient": [
-          0.35,
-          0.35,
-          0.45
+          0.7,
+          0.7,
+          0.7
         ],
         "OutdoorAmbient": [
-          0.4,
-          0.4,
-          0.55
+          0.7,
+          0.7,
+          0.7
         ],
         "Brightness": 2,
-        "ClockTime": 20.5,
+        "ClockTime": 14,
         "FogColor": [
-          0.05,
-          0.05,
-          0.1
+          0.75,
+          0.85,
+          1.0
         ],
         "FogStart": 100,
         "FogEnd": 500,
